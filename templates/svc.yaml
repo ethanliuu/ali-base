@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ali-base.name" . }}
+  labels:
+    {{- include "ali-base.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "ali-base.selectorLabels" . | nindent 4 }}
+  sessionAffinity: ClientIP
+  ports:
+  - name: http
+    port: {{ .Values.containerPort }}
+    targetPort: http
+    protocol: TCP

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ali-base.name" .}}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ali-base.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ali-base.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - {{ .Values.imagePullSecrets }}
+      {{- end}}
+      containers:
+        - name: {{ include "ali-base.name" .}}
+          image: image-name
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+          {{- with .Values.healthExamination}}
+          livenessProbe:
+            {{- if .tcp }}
+            tcpSocket:
+              port: http
+            {{- else if .http}}
+            httpGet:
+              port: http
+              path: /ping
+            {{- end }}
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+          readinessProbe:
+            {{- if .tcp }}
+            tcpSocket:
+              port: http
+            {{- else if .http }}
+            httpGet:
+              port: http
+              path: /ping
+            {{- end }}
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            limits:
+              cpu: {{ .limits.cpu }}
+              memory: {{ .limits.memory }}
+            requests:
+              cpu: {{ .requests.cpu }}
+              memory: {{ .requests.memory }}
+          {{- end }}
+      {{ if .Values.volumeMount }}
+          volumeMounts:
+            - mountPath: /go/bin/config
+              name: config
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}
+      {{- end }}
